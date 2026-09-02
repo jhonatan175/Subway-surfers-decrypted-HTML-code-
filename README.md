@@ -31,7 +31,6 @@ If anything is incorrect or could be improved, feel free to correct me! Correcti
 
 ## ⚠️ Important Notice
 - 🚫 This is an **unofficial tool**, not affiliated with SYBO Games or Kiloo in any way
-- ⚠️ Using it may violate the game’s **Terms of Service** and could lead to **account bans**
 - ⚠️ No guarantees — game updates may break this tool at any time
 - ⚠️ Use at your own risk! Always keep a backup of your original progress
 
