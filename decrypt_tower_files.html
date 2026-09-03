@@ -1,0 +1,535 @@
+<html style="margin:0;padding:0;">
+<script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<script>
+(function(){
+    const css = `
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { background: #0a0e14; color: #e1e8f0; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; }
+    
+    .container { 
+        flex: 1; display: flex; flex-direction: column; 
+        background: #161c27; border-radius: 12px; border: 2px solid #2d3748; padding: 12px;
+        min-height: 600px;
+    }
+    
+    h1 { text-align: center; font-size: 16px; color: #00d2ff; margin: 0 0 10px 0; font-weight: bold; }
+
+    .toolbar { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; background: #1e2633; padding: 10px; border-radius: 8px; margin-bottom: 10px; flex-shrink: 0; }
+    .file-group { display: flex; flex-direction: column; gap: 4px; }
+    .file-label { font-size: 9px; color: #00d2ff; font-weight: bold; }
+    .input-group { display: flex; align-items: center; background: #000; border: 1px solid #00d2ff; border-radius: 4px; padding: 4px 8px; }
+    .input-group label { color: #00d2ff; font-weight: bold; font-size: 10px; margin-right: 5px; }
+    .input-group input { background: transparent; color: #32cd32; border: none; outline: none; font-weight: bold; font-size: 12px; width: 100%; }
+
+    button { border: none; border-radius: 6px; padding: 10px; font-weight: bold; cursor: pointer; font-size: 11px; color: white; text-transform: uppercase; flex-shrink: 0; }
+    .b-blue { background: #3182ce; }
+    .b-purple { background: #6b46c1; }
+    .b-green { background: #2f855a; }
+    .b-orange { background: #c05621; }
+
+    .edit-controls { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; z-index: 5; }
+    .ctrl-btn { background: rgba(0, 210, 255, 0.2); border: 1px solid #00d2ff; color: #00d2ff; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+    .ctrl-btn:active { background: #00d2ff; color: #000; }
+
+    .t-node { margin-left: 15px; border-left: 1px solid #444; padding-left: 8px; margin-top: 4px; position: relative; }
+    .t-row { display: flex; align-items: center; border-radius: 4px; padding: 4px; border: 1px solid transparent; transition: 0.2s; }
+    .t-row:active { background: rgba(0, 210, 255, 0.2); border-color: #00d2ff; }
+    .t-key { background: transparent; color: #ce9178; border: none; font-weight: bold; font-size: 13px; outline: none; cursor: pointer; pointer-events: none; }
+    .t-val { background: #1e2633; color: #4ec9b0; border: 1px solid #333; border-radius: 3px; font-size: 13px; padding: 2px 5px; outline: none; pointer-events: none; }
+    .t-toggle { cursor: pointer; color: #ffd700; margin-right: 5px; font-size: 12px; width: 15px; display: inline-block; text-align: center; }
+    .t-toggle::before { content: '\\25B6'; }
+    .t-toggle.open::before { content: '\\25BC'; }
+    .t-kids { display: none; margin-bottom: 5px; }
+    .t-kids.show { display: block; }
+
+    #ctxMenu { 
+        display: none; position: absolute; z-index: 10000; background: #252526; 
+        border: 1px solid #454545; border-radius: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        min-width: 200px; padding: 5px 0;
+    }
+    .ctx-item { padding: 10px 15px; color: #cccccc; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+    .ctx-item:active { background: #094771; color: white; }
+    .ctx-sep { border-bottom: 1px solid #454545; margin: 5px 0; }
+    .ctx-label { display: flex; align-items: center; gap: 10px; }
+    .ctx-icon { width: 16px; text-align: center; color: #00d2ff; font-weight: bold; }
+    .ctx-hint { font-size: 10px; opacity: 0.5; color: #aaa; }
+
+    #toast { visibility: hidden; min-width: 180px; background: #00d2ff; color: #000; text-align: center; border-radius: 8px; padding: 12px; position: fixed; z-index: 1000; left: 50%; bottom: 80px; transform: translateX(-50%); font-weight: bold; box-shadow: 0 4px 15px rgba(0,210,255,0.4); pointer-events: none; }
+    #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2s; }
+    @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 80px; opacity: 1; } }
+    @keyframes fadeout { from { bottom: 80px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+
+    .workspace { flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 400px; }
+    .workspace.split-active { display: grid; grid-template-rows: 1fr 1fr; }
+    .pane { position: relative; display: flex; flex-direction: column; min-height: 300px; border: 2px solid transparent; border-radius: 10px; }
+    .pane.active { border-color: #00d2ff; }
+    
+    textarea, .tree-box { 
+        flex: 1; background: #0d1117; color: #9cdcfe; border: none;
+        padding: 12px; font-family: monospace; 
+        font-size: 13px; overflow-y: auto !important; overflow-x: auto; resize: none; 
+        white-space: pre-wrap; word-wrap: break-word; -webkit-overflow-scrolling: touch;
+        min-height: 300px;
+    }
+    .tree-box { display: none; white-space: nowrap; background: #0d1117; }
+
+    .main-actions { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; flex-shrink: 0; }
+    #decBtn { padding: 15px; font-size: 14px; background: #00d2ff; color: #000; width: 100%; border-radius: 10px; }
+
+    .credit-footer { 
+        margin-top: 10px; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; 
+        font-size: 10px; color: #aaa; border: 1px solid #333; text-align: center; flex-shrink: 0;
+    }
+    .credit-footer a { color: #00d2ff; }
+    `;
+    const style = document.createElement('style');
+    style.textContent = css;
+    document.head.appendChild(style);
+})();
+</script>
+<div style="background-color:transparent;box-sizing:border-box;">
+<div class="container">
+    <h1>Descriptografador e Criptografador de Perfil — Subway Surfers</h1>
+
+    <div class="toolbar">
+        <div class="file-group">
+            <span class="file-label">ARQUIVO 1</span>
+            <input type="file" id="fileIn1" style="font-size: 10px; color: #aaa;">
+        </div>
+        <div id="file2Container" class="file-group" style="display:none;">
+            <span class="file-label">ARQUIVO 2</span>
+            <input type="file" id="fileIn2" style="font-size: 10px; color: #aaa;">
+        </div>
+        <div class="input-group"><label>nome do arquivo:</label><input type="text" id="nInput" value="perfil.json"></div>
+        <button class="b-purple" onclick="toggleFull()">[ ] TELA CHEIA</button>
+        <button class="b-purple" onclick="changeVersion()"># VER</button>
+        <button class="b-blue" onclick="toggleSplit()">[|] DIVIDIR</button>
+        <button class="b-blue" onclick="toggleTree()">[T] ARVORE</button>
+    </div>
+
+    <div id="toast">Descriptografado!</div>
+
+    <div class="workspace" id="ws">
+        <div class="pane active" id="p1" onclick="setActive('ed1')">
+            <div class="edit-controls">
+                <button class="ctrl-btn" onclick="handleUndo('ed1')">&larr;</button>
+                <button class="ctrl-btn" onclick="handleRedo('ed1')">&rarr;</button>
+            </div>
+            <textarea id="ed1" placeholder="Carregue um arquivo binario criptografado ou cole JSON aqui..." oninput="saveStep('ed1')"></textarea>
+            <div id="tree1" class="tree-box"></div>
+        </div>
+        <div class="pane" id="p2" style="display:none;" onclick="setActive('ed2')">
+            <div class="edit-controls">
+                <button class="ctrl-btn" onclick="handleUndo('ed2')">&larr;</button>
+                <button class="ctrl-btn" onclick="handleRedo('ed2')">&rarr;</button>
+            </div>
+            <textarea id="ed2" placeholder="Carregue um arquivo binario criptografado ou cole JSON aqui..." oninput="saveStep('ed2')"></textarea>
+            <div id="tree2" class="tree-box"></div>
+        </div>
+    </div>
+
+    <div class="main-actions">
+        <button class="b-blue" id="decBtn" onclick="runDecrypt()">DESCRIPTOGRAFAR DADOS</button>
+        <div style="display:flex; gap:8px;">
+            <button class="b-orange" style="flex:2" onclick="runEncrypt()">CRIPTOGRAFAR DADOS</button>
+            <button class="b-green" style="flex:1" onclick="runSave()">SALVAR</button>
+        </div>
+        <button onclick="copyAll()" style="position:absolute; bottom:20px; right:20px; background:#00d2ff; color:#000; padding:12px; border-radius:50px; font-weight:bold; z-index:9999; border:none; box-shadow:0 4px 10px rgba(0,0,0,0.5);">COPIAR</button>
+    </div>
+
+   <div class="credit-footer">
+        Editor de arquivo tower/gamedata do Subway Surfers. Formato: AES-CTR com cabecalho de 32 bytes (16 bytes counter + 16 bytes chave)<br>
+        Creditos: <a href="https://discord.gg/nghc84wjSZ" target="_blank">Discord da Comunidade</a>
+    </div>
+</div>
+
+<div id="ctxMenu">
+    <div class="ctx-item" onclick="ctxCmd('edit')"><div class="ctx-label"><span class="ctx-icon">/</span> Editar Valor</div></div>
+    <div class="ctx-item" onclick="ctxCmd('ren')"><div class="ctx-label"><span class="ctx-icon">=</span> Editar Chave</div></div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" onclick="ctxCmd('addV')"><div class="ctx-label"><span class="ctx-icon">+</span> Adicionar Valor</div><span class="ctx-hint">texto/numero</span></div>
+    <div class="ctx-item" onclick="ctxCmd('obj')"><div class="ctx-label"><span class="ctx-icon">{}</span> Adicionar Objeto</div></div>
+    <div class="ctx-item" onclick="ctxCmd('arr')"><div class="ctx-label"><span class="ctx-icon">[]</span> Adicionar Lista</div></div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" onclick="ctxCmd('dup')"><div class="ctx-label"><span class="ctx-icon">[ ]</span> Duplicar</div></div>
+    <div class="ctx-item" onclick="ctxCmd('rem')"><div class="ctx-label"><span class="ctx-icon">X</span> Remover</div></div>
+</div>
+</div>
+
+<script>
+const HEADER_SIZE = 32;
+const COUNTER_SIZE = 16;
+const KEY_SIZE = 16;
+
+let isSplit = false, isTree = false;
+let activeEditor = document.getElementById('ed1');
+let stacks = { ed1: [""], ed2: [""] }, currentIdx = { ed1: 0, ed2: 0 };
+let fileNames = { ed1: "perfil.json", ed2: "perfil.json" };
+let cryptoHeaders = { 
+    ed1: { counter: null, key: null }, 
+    ed2: { counter: null, key: null } 
+};
+let ctxTarget = null;
+let openPaths = new Set(); 
+
+function copyAll() {
+    activeEditor.select();
+    document.execCommand('copy');
+    showToast("Copiado!");
+}
+
+function setActive(id) {
+    activeEditor = document.getElementById(id);
+    document.getElementById('p1').classList.toggle('active', id === 'ed1');
+    document.getElementById('p2').classList.toggle('active', id === 'ed2');
+    document.getElementById('nInput').value = fileNames[id];
+}
+
+document.getElementById('ed1').onfocus = () => setActive('ed1');
+document.getElementById('ed2').onfocus = () => setActive('ed2');
+
+function showToast(msg) {
+    const toast = document.getElementById("toast");
+    toast.innerText = msg;
+    toast.classList.add("show");
+    setTimeout(() => { toast.classList.remove("show"); }, 2000);
+}
+
+function openCtx(e, target) {
+    e.preventDefault(); e.stopPropagation();
+    ctxTarget = target;
+    const menu = document.getElementById('ctxMenu');
+    menu.style.display = 'block';
+    let x = e.clientX || (e.touches ? e.touches[0].clientX : 100);
+    let y = e.clientY || (e.touches ? e.touches[0].clientY : 100);
+    if (x + 200 > window.innerWidth) x -= 200;
+    if (y + 350 > window.innerHeight) y -= 350;
+    menu.style.left = x + 'px'; menu.style.top = y + 'px';
+}
+
+window.onclick = () => document.getElementById('ctxMenu').style.display = 'none';
+
+function parseVal(v) {
+    if(v === "true") return true; 
+    if(v === "false") return false;
+    if(v === "null") return null;
+    if(!isNaN(v) && v.trim() !== "") return Number(v);
+    return v;
+}
+
+function ctxCmd(op) {
+    const { obj, k, pId, root } = ctxTarget;
+    if (op === 'edit') {
+        const v = prompt("Novo valor:", obj[k]);
+        if (v !== null) obj[k] = parseVal(v);
+    } else if (op === 'ren') {
+        const nk = prompt("Novo nome da chave:", k);
+        if (nk && nk !== k) { obj[nk] = obj[k]; delete obj[k]; }
+    } else if (op === 'addV') {
+        const nk = prompt("Nome da chave:", "nova_chave");
+        if(nk) obj[nk] = "novo_valor";
+    } else if (op === 'obj') {
+        const nk = prompt("Nome do objeto:", "novo_objeto");
+        if(nk) obj[nk] = {};
+    } else if (op === 'arr') {
+        const nk = prompt("Nome da lista:", "nova_lista");
+        if(nk) obj[nk] = [];
+    } else if (op === 'dup') {
+        const copy = JSON.parse(JSON.stringify(obj[k]));
+        Array.isArray(obj) ? obj.splice(parseInt(k)+1, 0, copy) : obj[k+"_copia"] = copy;
+    } else if (op === 'rem') {
+        Array.isArray(obj) ? obj.splice(k, 1) : delete obj[k];
+    }
+    
+    sync(pId, root);
+    refreshTreeOnly();
+}
+
+async function decryptCTR(data) {
+    if (data.byteLength < HEADER_SIZE) {
+        throw new Error("Arquivo muito pequeno: minimo 32 bytes");
+    }
+    
+    const counter = new Uint8Array(data, 0, COUNTER_SIZE);
+    const key = new Uint8Array(data, COUNTER_SIZE, KEY_SIZE);
+    const ciphertext = new Uint8Array(data, HEADER_SIZE);
+    
+    const cryptoKey = await crypto.subtle.importKey(
+        "raw", key, { name: "AES-CTR" }, false, ["decrypt"]
+    );
+    
+    const plaintext = await crypto.subtle.decrypt(
+        { name: "AES-CTR", counter: counter, length: 128 },
+        cryptoKey, ciphertext
+    );
+    
+    return {
+        plaintext: new Uint8Array(plaintext),
+        counter: new Uint8Array(counter),
+        key: new Uint8Array(key)
+    };
+}
+
+async function encryptCTR(plaintextBytes, counter, key) {
+    const cryptoKey = await crypto.subtle.importKey(
+        "raw", key, { name: "AES-CTR" }, false, ["encrypt"]
+    );
+    
+    const ciphertext = await crypto.subtle.encrypt(
+        { name: "AES-CTR", counter: counter, length: 128 },
+        cryptoKey, plaintextBytes
+    );
+    
+    const result = new Uint8Array(HEADER_SIZE + ciphertext.byteLength);
+    result.set(counter, 0);
+    result.set(key, COUNTER_SIZE);
+    result.set(new Uint8Array(ciphertext), HEADER_SIZE);
+    
+    return result;
+}
+
+function generateRandomBytes(length) {
+    const arr = new Uint8Array(length);
+    crypto.getRandomValues(arr);
+    return arr;
+}
+
+async function runDecrypt() {
+    try {
+        const editorId = activeEditor.id;
+        
+        if (currentFileBuffers && currentFileBuffers[editorId]) {
+            const result = await decryptCTR(currentFileBuffers[editorId]);
+            
+            cryptoHeaders[editorId].counter = result.counter;
+            cryptoHeaders[editorId].key = result.key;
+            
+            let text;
+            try {
+                text = new TextDecoder('utf-8').decode(result.plaintext);
+                JSON.parse(text);
+                activeEditor.value = JSON.stringify(JSON.parse(text), null, 2);
+            } catch (e) {
+                activeEditor.value = "[Conteudo binario ou texto nao-JSON]\nTamanho: " + result.plaintext.length + " bytes\nPrimeiros bytes: " + Array.from(result.plaintext.slice(0, 64)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+            }
+            
+            saveStep(editorId);
+            showToast("Descriptografado!");
+        } else {
+            showToast("Carregue um arquivo binario primeiro");
+        }
+    } catch(e) { 
+        console.error(e);
+        showToast("Erro: Falha na descriptografia"); 
+    }
+}
+
+async function runEncrypt() {
+    try {
+        const editorId = activeEditor.id;
+        let plaintextBytes;
+        
+        try {
+            const obj = JSON.parse(activeEditor.value);
+            plaintextBytes = new TextEncoder().encode(JSON.stringify(obj));
+        } catch (e) {
+            plaintextBytes = new TextEncoder().encode(activeEditor.value);
+        }
+        
+        let counter = cryptoHeaders[editorId].counter;
+        let key = cryptoHeaders[editorId].key;
+        
+        if (!counter || !key) {
+            counter = generateRandomBytes(COUNTER_SIZE);
+            key = generateRandomBytes(KEY_SIZE);
+            cryptoHeaders[editorId].counter = counter;
+            cryptoHeaders[editorId].key = key;
+            showToast("Gerados novos counter e chave aleatorios");
+        }
+        
+        const encrypted = await encryptCTR(plaintextBytes, counter, key);
+        
+        currentFileBuffers[editorId] = encrypted.buffer;
+        
+        const baseName = fileNames[editorId].replace(/\.[^.]+$/, '');
+        fileNames[editorId] = baseName + "_encrypted.bin";
+        document.getElementById('nInput').value = fileNames[editorId];
+        
+        activeEditor.value = "[Arquivo binario criptografado na memoria]\nTamanho: " + encrypted.length + " bytes\nCounter: " + Array.from(counter).map(b => b.toString(16).padStart(2, '0')).join(' ') + "\nChave: " + Array.from(key).map(b => b.toString(16).padStart(2, '0')).join(' ') + "\n\nClique em SALVAR para baixar o arquivo .bin";
+        
+        saveStep(editorId);
+        showToast("Criptografado!");
+    } catch(e) { 
+        console.error(e);
+        showToast("Erro: Falha na criptografia"); 
+    }
+}
+
+let currentFileBuffers = { ed1: null, ed2: null };
+
+function toggleTree() {
+    isTree = !isTree;
+    refreshTreeOnly();
+}
+
+function refreshTreeOnly() {
+    const panes = [{ed: 'ed1', tree: 'tree1', id: 1}, {ed: 'ed2', tree: 'tree2', id: 2}];
+    panes.forEach(p => {
+        const ed = document.getElementById(p.ed);
+        const tr = document.getElementById(p.tree);
+        if (isTree && ed.value) {
+            try {
+                const data = JSON.parse(ed.value);
+                ed.style.display = 'none';
+                tr.style.display = 'block';
+                tr.innerHTML = "";
+                tr.appendChild(buildNodes(data, p.id, data, "raiz"));
+            } catch (e) { 
+                isTree = false; 
+                alert("JSON invalido para o modo arvore"); 
+            }
+        } else {
+            ed.style.display = 'block';
+            tr.style.display = 'none';
+        }
+    });
+}
+
+function buildNodes(obj, pId, root, path) {
+    const f = document.createDocumentFragment();
+    for (let k in obj) {
+        const currentPath = path + "." + k;
+        const node = document.createElement('div'); node.className = 't-node';
+        const row = document.createElement('div'); row.className = 't-row';
+        
+        row.onclick = (e) => openCtx(e, {obj, k, pId, root});
+
+        const kI = document.createElement('span'); kI.className = 't-key'; kI.innerText = k;
+
+        if (obj[k] !== null && typeof obj[k] === 'object') {
+            const t = document.createElement('span'); t.className = 't-toggle';
+            if(openPaths.has(currentPath)) t.classList.add('open');
+            
+            const kids = document.createElement('div'); kids.className = 't-kids';
+            if(openPaths.has(currentPath)) kids.classList.add('show');
+            
+            t.onclick = (e) => { 
+                e.stopPropagation(); 
+                const isOpen = t.classList.toggle('open'); 
+                kids.classList.toggle('show');
+                isOpen ? openPaths.add(currentPath) : openPaths.delete(currentPath);
+            };
+            
+            kids.appendChild(buildNodes(obj[k], pId, root, currentPath));
+            row.prepend(t);
+            row.append(kI);
+            node.append(row, kids);
+        } else {
+            const vI = document.createElement('span'); vI.className = 't-val'; vI.innerText = ": " + JSON.stringify(obj[k]);
+            row.append(kI, vI);
+            node.append(row);
+        }
+        f.appendChild(node);
+    }
+    return f;
+}
+
+function sync(pId, root) {
+    const id = 'ed' + pId;
+    document.getElementById(id).value = JSON.stringify(root, null, 2);
+    saveStep(id);
+}
+
+function saveStep(id) {
+    const v = document.getElementById(id).value;
+    if (v === stacks[id][currentIdx[id]]) return;
+    stacks[id] = stacks[id].slice(0, currentIdx[id] + 1);
+    stacks[id].push(v); currentIdx[id] = stacks[id].length - 1;
+}
+
+function handleUndo(id) { if(currentIdx[id]>0){ currentIdx[id]--; document.getElementById(id).value=stacks[id][currentIdx[id]]; refreshTreeOnly(); } }
+function handleRedo(id) { if(currentIdx[id]<stacks[id].length-1){ currentIdx[id]++; document.getElementById(id).value=stacks[id][currentIdx[id]]; refreshTreeOnly(); } }
+
+function changeVersion() {
+    try {
+        const obj = JSON.parse(activeEditor.value);
+        let v = prompt("Versao (1-100):", obj.versao || obj.version || 2);
+        if(v) { 
+            obj.versao = parseInt(v); 
+            activeEditor.value = JSON.stringify(obj, null, 2); 
+            saveStep(activeEditor.id); 
+            refreshTreeOnly(); 
+            showToast("Versao alterada!"); 
+        }
+    } catch(e) { alert("Descriptografe primeiro ou forneca JSON valido!"); }
+}
+
+function toggleSplit() {
+    isSplit = !isSplit; isTree = false;
+    document.getElementById('ws').classList.toggle('split-active', isSplit);
+    document.getElementById('file2Container').style.display = isSplit ? 'flex' : 'none';
+    document.getElementById('p2').style.display = isSplit ? 'flex' : 'none';
+    if(isSplit && !document.getElementById('ed2').value) { 
+        document.getElementById('ed2').value = document.getElementById('ed1').value; 
+        fileNames.ed2 = fileNames.ed1;
+        currentFileBuffers.ed2 = currentFileBuffers.ed1;
+        cryptoHeaders.ed2 = { ...cryptoHeaders.ed1 };
+        saveStep('ed2'); 
+    }
+}
+
+function runSave() {
+    const editorId = activeEditor.id;
+    const fileName = document.getElementById('nInput').value;
+    fileNames[editorId] = fileName;
+    
+    let blob;
+    if (currentFileBuffers[editorId] && activeEditor.value.includes("[Arquivo binario criptografado")) {
+        blob = new Blob([currentFileBuffers[editorId]], { type: 'application/octet-stream' });
+    } else {
+        blob = new Blob([activeEditor.value], { type: 'application/json' });
+    }
+    
+    const a = document.createElement('a'); 
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName; 
+    a.click();
+    showToast("Salvo: " + fileName);
+}
+
+function toggleFull() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+
+function setupFileReader(inputId, editorId) {
+    document.getElementById(inputId).onchange = (e) => {
+        const f = e.target.files[0]; if(!f) return;
+        fileNames[editorId] = f.name;
+        if (activeEditor.id === editorId) document.getElementById('nInput').value = f.name;
+        
+        const r = new FileReader(); 
+        r.onload = (ev) => { 
+            currentFileBuffers[editorId] = ev.target.result;
+            
+            try {
+                const text = new TextDecoder('utf-8').decode(new Uint8Array(ev.target.result));
+                JSON.parse(text);
+                document.getElementById(editorId).value = JSON.stringify(JSON.parse(text), null, 2);
+                cryptoHeaders[editorId] = { counter: null, key: null };
+            } catch (err) {
+                document.getElementById(editorId).value = "[Arquivo binario carregado na memoria]\nNome: " + f.name + "\nTamanho: " + ev.target.result.byteLength + " bytes\n\nClique em DESCRIPTOGRAFAR para ver o conteudo";
+            }
+            
+            saveStep(editorId); 
+            refreshTreeOnly(); 
+        }; 
+        r.readAsArrayBuffer(f);
+    };
+}
+
+setupFileReader('fileIn1', 'ed1');
+setupFileReader('fileIn2', 'ed2');
+
+document.getElementById('nInput').oninput = (e) => { fileNames[activeEditor.id] = e.target.value; };
+</script>
+</html>
