@@ -37,3 +37,7 @@ If anything is incorrect or could be improved, feel free to correct me! Correcti
 ## 💬 Contributions
 Since I’m a beginner, **any fixes, suggestions, or improvements are highly appreciated!** Feel free to open an Issue or submit a Pull Request. 😄
 
+Updated September 3, 2026!
+
+I've now added a decryptor for Subway Surfers, but it's from the Tower folder. Try it out and let me know how it goes. 🙂
+
