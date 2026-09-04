@@ -41,3 +41,4 @@ Updated September 3, 2026!
 
 I've now added a decryptor for Subway Surfers, but it's from the Tower folder. Try it out and let me know how it goes. 🙂
 
+`Android/data/com.kiloo.subwaysurf/files/tower/gamedata/`
