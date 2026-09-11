@@ -44,4 +44,4 @@ https://subway-surfers-decryptor-html.htmly.com.br/
 
 I've now created an APK app for download, test it out 👇
 
-https://appsgeyser.io/20160028/Subwaysurfersdecryptor
+https://www.mediafire.com/file/bw7niwy80rys5s3/_Subway_surfers_decryptor_20160028.apk/file
